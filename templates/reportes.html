@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reportes - Sistema Comercial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+<!-- Mensajes Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container mb-4">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Sistema Comercial</a>
+    <div>
+      <a class="btn btn-outline-light me-2" href="/productos">Productos</a>
+      <a class="btn btn-outline-light me-2" href="/ventas">Ventas</a>
+      <a class="btn btn-outline-light" href="/reportes">Reportes</a>
+      <a class="btn btn-outline-light me-2" href="/historial">Historial</a>
+    </div>
+  </div>
+</nav>
+
+<h1 class="mb-4">Dashboard Comercial</h1>
+
+<!-- CARDS -->
+<div class="row mb-5">
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-header bg-dark text-white">Total Facturado</div>
+            <div class="card-body">
+                <h4>${{ total_facturado }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-header bg-dark text-white">Ventas Realizadas</div>
+            <div class="card-body">
+                <h4>{{ cantidad_ventas }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-header bg-success text-white">Ganancia Total</div>
+            <div class="card-body">
+                <h4>${{ ganancia_total }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-header bg-warning text-dark">Producto Más Rentable</div>
+            <div class="card-body">
+                {% if producto_rentable %}
+                    <strong>{{ producto_rentable[0] }}</strong>
+                    <p>${{ producto_rentable[1] }}</p>
+                {% else %}
+                    <p>No hay datos</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<hr>
+
+<!-- GRÁFICO VENTAS POR PRODUCTO -->
+<h2 class="mb-4">Ventas por Producto</h2>
+<canvas id="graficoVentas"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Creamos una variable con JSON generado por Flask
+    const ventasData = JSON.parse('{{ ventas_por_producto | tojson | safe }}');
+    const labels = ventasData.map(item => item[0]);
+    const dataValues = ventasData.map(item => item[1]);
+
+    const ctx = document.getElementById('graficoVentas');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cantidad Vendida',
+                data: dataValues,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    precision: 0
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

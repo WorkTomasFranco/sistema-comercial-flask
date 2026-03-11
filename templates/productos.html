@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Productos - Sistema Comercial</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-4">
+<!-- Mensajes Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container mb-4">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">Sistema Comercial</a>
+    <div>
+      <a class="btn btn-outline-light me-2" href="/productos">Productos</a>
+      <a class="btn btn-outline-light me-2" href="/ventas">Ventas</a>
+      <a class="btn btn-outline-light" href="/reportes">Reportes</a>
+      <a class="btn btn-outline-light me-2" href="/historial">Historial</a>
+    </div>
+  </div>
+</nav>
+
+<h1 class="mb-4">Lista de Productos</h1>
+
+<a class="btn btn-primary mb-3" href="/">Volver al inicio</a>
+
+<ul class="list-group mb-4">
+    {% for producto in productos %}
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ producto[1] }} - ${{ producto[2] }} - Stock: {{ producto[4] }}
+        {% if producto[4] <= producto[5] %}
+            <span class="badge bg-warning text-dark">⚠️ Stock bajo</span>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+<h2 class="mb-3">Agregar Nuevo Producto</h2>
+<form action="/agregar_producto" method="POST" class="row g-3 needs-validation" novalidate>
+
+    <div class="col-md-3">
+        <input type="text" class="form-control" name="nombre" placeholder="Nombre" required>
+        <div class="invalid-feedback">
+            Ingresá un nombre válido.
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <input type="number" step="0.01" min="0" class="form-control" name="precio" placeholder="Precio" required>
+        <div class="invalid-feedback">
+            El precio no puede ser negativo.
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <input type="number" step="0.01" min="0" class="form-control" name="costo" placeholder="Costo" required>
+        <div class="invalid-feedback">
+            El costo no puede ser negativo.
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <input type="number" min="0" class="form-control" name="stock_actual" placeholder="Stock Actual" required>
+        <div class="invalid-feedback">
+            El stock no puede ser negativo.
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <input type="number" min="0" class="form-control" name="stock_minimo" placeholder="Stock Mínimo" required>
+        <div class="invalid-feedback">
+            El stock mínimo no puede ser negativo.
+        </div>
+    </div>
+
+    <div class="col-md-1">
+        <button type="submit" class="btn btn-success w-100">Agregar</button>
+    </div>
+
+</form>
+<script>
+(() => {
+  'use strict'
+  const forms = document.querySelectorAll('.needs-validation')
+  Array.from(forms).forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!form.checkValidity()) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+      form.classList.add('was-validated')
+    }, false)
+  })
+})()
+</script>
+</body>
+</html>
