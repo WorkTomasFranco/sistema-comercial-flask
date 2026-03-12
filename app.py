@@ -5,6 +5,7 @@ app = Flask(__name__)
 app.secret_key = "clave_secreta_super_segura_123"
 
 DATABASE = "database.db"
+
 # =====================================================
 #                     BASE DE DATOS
 # =====================================================
@@ -13,7 +14,6 @@ def init_db():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
-    # -------- Tabla Productos --------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS productos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +25,6 @@ def init_db():
         )
     """)
 
-    # -------- Tabla Ventas --------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS ventas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,7 +34,6 @@ def init_db():
         )
     """)
 
-    # -------- Tabla Detalle Ventas --------
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS detalle_ventas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +48,10 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+
+# 🔥 IMPORTANTE: se ejecuta SIEMPRE (local y producción)
+init_db()
 
 
 # =====================================================
@@ -94,12 +96,15 @@ def agregar_producto():
             INSERT INTO productos (nombre, precio, costo, stock_actual, stock_minimo)
             VALUES (?, ?, ?, ?, ?)
         """, (nombre, precio, costo, stock_actual, stock_minimo))
+
         conn.commit()
         conn.close()
 
         flash(f"Producto '{nombre}' agregado correctamente.", "success")
+
     except ValueError:
-        flash("Datos inválidos, revisa los campos.", "danger")
+        flash("Datos inválidos.", "danger")
+
     return redirect("/productos")
 
 
@@ -124,11 +129,12 @@ def registrar_venta():
         cantidad = int(request.form["cantidad"])
 
         if cantidad <= 0:
-            flash("La cantidad debe ser mayor a cero.", "danger")
+            flash("Cantidad inválida.", "danger")
             return redirect("/ventas")
 
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
+
         cursor.execute(
             "SELECT nombre, precio, costo, stock_actual FROM productos WHERE id = ?",
             (id_producto,)
@@ -150,20 +156,17 @@ def registrar_venta():
         subtotal = precio * cantidad
         ganancia = (precio - costo) * cantidad
 
-        # Insertar venta
         cursor.execute(
             "INSERT INTO ventas (total, ganancia) VALUES (?, ?)",
             (subtotal, ganancia)
         )
         id_venta = cursor.lastrowid
 
-        # Insertar detalle
         cursor.execute("""
             INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, subtotal)
             VALUES (?, ?, ?, ?)
         """, (id_venta, id_producto, cantidad, subtotal))
 
-        # Actualizar stock
         nuevo_stock = stock_actual - cantidad
         cursor.execute(
             "UPDATE productos SET stock_actual = ? WHERE id = ?",
@@ -173,11 +176,13 @@ def registrar_venta():
         conn.commit()
         conn.close()
 
-        flash(f"Venta de '{nombre}' registrada correctamente.", "success")
+        flash(f"Venta de '{nombre}' registrada.", "success")
+
     except ValueError:
-        flash("Datos inválidos, revisa los campos.", "danger")
+        flash("Datos inválidos.", "danger")
 
     return redirect("/ventas")
+
 
 # =====================================================
 #                       REPORTES
@@ -188,42 +193,15 @@ def reportes():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
-    # Total facturado
     cursor.execute("SELECT SUM(total) FROM ventas")
     total_facturado = cursor.fetchone()[0] or 0
 
-    # Cantidad de ventas
     cursor.execute("SELECT COUNT(*) FROM ventas")
     cantidad_ventas = cursor.fetchone()[0]
 
-    # Ganancia total
     cursor.execute("SELECT SUM(ganancia) FROM ventas")
     ganancia_total = cursor.fetchone()[0] or 0
 
-    # Producto más vendido
-    cursor.execute("""
-        SELECT p.nombre, SUM(d.cantidad) AS total_vendido
-        FROM detalle_ventas d
-        JOIN productos p ON d.id_producto = p.id
-        GROUP BY p.nombre
-        ORDER BY total_vendido DESC
-        LIMIT 1
-    """)
-    producto_top = cursor.fetchone()
-
-    # Producto más rentable
-    cursor.execute("""
-        SELECT p.nombre,
-               SUM((p.precio - p.costo) * d.cantidad) AS ganancia_producto
-        FROM detalle_ventas d
-        JOIN productos p ON d.id_producto = p.id
-        GROUP BY p.nombre
-        ORDER BY ganancia_producto DESC
-        LIMIT 1
-    """)
-    producto_rentable = cursor.fetchone()
-
-    # Datos para gráfico
     cursor.execute("""
         SELECT p.nombre, SUM(d.cantidad)
         FROM detalle_ventas d
@@ -239,12 +217,12 @@ def reportes():
         total_facturado=total_facturado,
         cantidad_ventas=cantidad_ventas,
         ganancia_total=ganancia_total,
-        producto_top=producto_top,
-        producto_rentable=producto_rentable,
         ventas_por_producto=ventas_por_producto
     )
+
+
 # =====================================================
-#                  HISTORIAL DE VENTAS
+#                  HISTORIAL
 # =====================================================
 
 @app.route("/historial")
@@ -257,7 +235,7 @@ def historial():
                p.nombre,
                d.cantidad,
                d.subtotal,
-               (p.precio - p.costo) * d.cantidad AS ganancia
+               (p.precio - p.costo) * d.cantidad
         FROM detalle_ventas d
         JOIN ventas v ON d.id_venta = v.id
         JOIN productos p ON d.id_producto = p.id
@@ -269,10 +247,10 @@ def historial():
 
     return render_template("historial.html", historial=historial)
 
+
 # =====================================================
 #                       MAIN
 # =====================================================
 
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
