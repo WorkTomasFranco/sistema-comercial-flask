@@ -193,15 +193,31 @@ def reportes():
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
 
+    # Total facturado
     cursor.execute("SELECT SUM(total) FROM ventas")
     total_facturado = cursor.fetchone()[0] or 0
 
+    # Cantidad de ventas
     cursor.execute("SELECT COUNT(*) FROM ventas")
     cantidad_ventas = cursor.fetchone()[0]
 
+    # Ganancia total
     cursor.execute("SELECT SUM(ganancia) FROM ventas")
     ganancia_total = cursor.fetchone()[0] or 0
 
+    # Producto más rentable
+    cursor.execute("""
+        SELECT p.nombre,
+               SUM((p.precio - p.costo) * d.cantidad) AS ganancia_producto
+        FROM detalle_ventas d
+        JOIN productos p ON d.id_producto = p.id
+        GROUP BY p.nombre
+        ORDER BY ganancia_producto DESC
+        LIMIT 1
+    """)
+    producto_rentable = cursor.fetchone()
+
+    # Datos para gráfico
     cursor.execute("""
         SELECT p.nombre, SUM(d.cantidad)
         FROM detalle_ventas d
@@ -217,8 +233,10 @@ def reportes():
         total_facturado=total_facturado,
         cantidad_ventas=cantidad_ventas,
         ganancia_total=ganancia_total,
+        producto_rentable=producto_rentable,
         ventas_por_producto=ventas_por_producto
     )
+    
 
 
 # =====================================================
